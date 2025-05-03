@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Apple Web App Meta -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Pi Calculator">
-  <link rel="apple-touch-icon" href="icon.png"> <!-- Add your icon if needed -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="Pi Calculator" />
+  <link rel="apple-touch-icon" href="icon.png" /> <!-- Optional -->
 
   <title>Pi Calculator</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #121212;
+      background: #111;
       color: #fff;
       text-align: center;
       padding: 30px;
@@ -26,29 +26,24 @@
 
     button, input[type="range"] {
       margin: 10px;
-      padding: 12px 25px;
+      padding: 12px 24px;
       font-size: 1.1em;
       border: none;
       border-radius: 5px;
     }
 
     button {
-      background: #1976d2;
-      color: #fff;
-      cursor: pointer;
+      background: #007aff;
+      color: white;
     }
 
     button:hover {
-      background: #1565c0;
+      background: #005bb5;
     }
 
     .output {
       margin-top: 30px;
       font-size: 1.6em;
-    }
-
-    .controls {
-      margin-top: 30px;
     }
 
     input[type="range"] {
@@ -57,21 +52,19 @@
 
     label {
       display: block;
-      margin-top: 15px;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
   <h1>Pi Calculator</h1>
-  <div class="controls">
+  <div>
     <button id="startBtn">Start</button>
     <button id="stopBtn">Stop</button>
-    <button id="maxBtn">Max Speed</button>
 
     <label>
-      Speed (iterations/sec): <span id="speedLabel">10000</span>
-      <br>
-      <input type="range" id="speedSlider" min="1000" max="10000000" step="1000" value="10000">
+      Speed (iterations/sec): <span id="speedLabel">50000</span><br />
+      <input type="range" id="speedSlider" min="1" max="100000000" step="1000" value="50000" />
     </label>
   </div>
 
@@ -86,71 +79,76 @@
     let iterations = 0;
     let pi = 0;
 
-    const piOutput = document.getElementById('piOutput');
-    const iterOutput = document.getElementById('iterations');
-    const speedSlider = document.getElementById('speedSlider');
-    const speedLabel = document.getElementById('speedLabel');
+    const piOutput = document.getElementById("piOutput");
+    const iterOutput = document.getElementById("iterations");
+    const speedSlider = document.getElementById("speedSlider");
+    const speedLabel = document.getElementById("speedLabel");
 
     speedSlider.oninput = () => {
       speedLabel.textContent = speedSlider.value;
     };
 
-    document.getElementById('startBtn').onclick = () => {
+    document.getElementById("startBtn").onclick = () => {
       if (running) return;
       running = true;
       maxSpeed = false;
-      startCalculation();
+      calculatePi();
     };
 
-    document.getElementById('stopBtn').onclick = () => {
+    document.getElementById("stopBtn").onclick = () => {
       running = false;
       maxSpeed = false;
     };
 
-    document.getElementById('maxBtn').onclick = () => {
+    document.getElementById("maxBtn").onclick = () => {
       if (running) return;
       running = true;
       maxSpeed = true;
-      startCalculation();
+      calculatePi();
     };
 
-    function startCalculation() {
+    function calculatePi() {
       iterations = 0;
       pi = 0;
       let i = 0;
 
-      const step = () => {
+      const safeLoop = () => {
         if (!running) return;
+        const speed = parseInt(speedSlider.value);
+        let count = 0;
+        const t0 = performance.now();
 
-        if (maxSpeed) {
-          // Push device hard by chaining requestAnimationFrame
-          for (let k = 0; k < 500000; k++, i++) {
-            pi += 4 * ((i % 2 === 0 ? 1 : -1) / (2 * i + 1));
-            iterations++;
-          }
-          piOutput.textContent = pi.toFixed(12);
-          iterOutput.textContent = iterations;
-          requestAnimationFrame(step);
-        } else {
-          const speed = parseInt(speedSlider.value);
-          let count = 0;
-          const t0 = performance.now();
-
-          while (count < speed && performance.now() - t0 < 1000) {
-            pi += 4 * ((i % 2 === 0 ? 1 : -1) / (2 * i + 1));
-            i++;
-            count++;
-            iterations++;
-          }
-
-          piOutput.textContent = pi.toFixed(12);
-          iterOutput.textContent = iterations;
-
-          setTimeout(step, 100);
+        while (count < speed && performance.now() - t0 < 1000) {
+          pi += 4 * ((i % 2 === 0 ? 1 : -1) / (2 * i + 1));
+          i++;
+          iterations++;
+          count++;
         }
+
+        piOutput.textContent = pi.toFixed(12);
+        iterOutput.textContent = iterations;
+
+        setTimeout(safeLoop, 50);
       };
 
-      step();
+      const maxLoop = () => {
+        if (!running) return;
+        const t0 = performance.now();
+        let count = 0;
+        while (performance.now() - t0 < 16) { // hammer hard each frame (~60fps)
+          for (let k = 0; k < 1000000; k++, i++) {
+            pi += 4 * ((i % 2 === 0 ? 1 : -1) / (2 * i + 1));
+            iterations++;
+          }
+          count++;
+        }
+
+        piOutput.textContent = pi.toFixed(12);
+        iterOutput.textContent = iterations;
+        requestAnimationFrame(maxLoop);
+      };
+
+      maxSpeed ? maxLoop() : safeLoop();
     }
   </script>
 </body>
