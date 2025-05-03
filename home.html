@@ -3,74 +3,84 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Apple Web App Meta -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-  <meta name="apple-mobile-web-app-title" content="Pi Calculator" />
-  <link rel="apple-touch-icon" href="icon.png" /> <!-- Optional -->
-
-  <title>Pi Calculator</title>
+  <meta name="apple-mobile-web-app-title" content="Pi Calculator Pro" />
+  <title>Pi Calculator Pro</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
       background: #111;
       color: #fff;
+      font-family: monospace;
       text-align: center;
       padding: 30px;
     }
 
     h1 {
-      margin-bottom: 20px;
+      font-size: 2em;
+      margin-bottom: 10px;
     }
 
-    button, input[type="range"] {
+    button, input[type=range] {
       margin: 10px;
       padding: 12px 24px;
-      font-size: 1.1em;
+      font-size: 1em;
       border: none;
       border-radius: 5px;
     }
 
     button {
-      background: #007aff;
+      background-color: #007aff;
       color: white;
     }
 
     button:hover {
-      background: #005bb5;
+      background-color: #005bb5;
     }
 
     .output {
-      margin-top: 30px;
-      font-size: 1.6em;
-    }
-
-    input[type="range"] {
-      width: 80%;
-    }
-
-    label {
-      display: block;
       margin-top: 20px;
+      font-size: 1.2em;
+    }
+
+    #benchmark {
+      margin-top: 30px;
+      font-size: 0.9em;
+      text-align: left;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      background: #222;
+      padding: 15px;
+      border-radius: 10px;
+      white-space: pre-wrap;
+    }
+
+    input[type=range] {
+      width: 80%;
     }
   </style>
 </head>
 <body>
-  <h1>Pi Calculator</h1>
-  <div>
-    <button id="startBtn">Start</button>
-    <button id="stopBtn">Stop</button>
+  <h1>Pi Calculator Pro</h1>
+  <button id="startBtn">Start</button>
+  <button id="stopBtn">Stop</button>
+  <button id="maxBtn">MAX++</button>
 
+  <div>
     <label>
-      Speed (iterations/sec): <span id="speedLabel">50000</span><br />
-      <input type="range" id="speedSlider" min="1" max="100000000" step="1000" value="50000" />
+      Speed (iters/sec): <span id="speedLabel">100000</span><br />
+      <input type="range" id="speedSlider" min="1000" max="1000000000" step="1000" value="100000">
     </label>
   </div>
 
   <div class="output">
-    <p>π ≈ <span id="piOutput">0</span></p>
-    <p>Iterations: <span id="iterations">0</span></p>
+    <p>π (approx): <span id="piOutput">0</span></p>
+    <p>Total Iterations: <span id="iterations">0</span></p>
+  </div>
+
+  <div id="benchmark">
+    Initializing benchmark...
   </div>
 
   <script>
@@ -78,11 +88,16 @@
     let maxSpeed = false;
     let iterations = 0;
     let pi = 0;
+    let i = 0;
+    let lastFrame = performance.now();
+    let frameCount = 0;
+    let totalFrameTime = 0;
 
     const piOutput = document.getElementById("piOutput");
     const iterOutput = document.getElementById("iterations");
     const speedSlider = document.getElementById("speedSlider");
     const speedLabel = document.getElementById("speedLabel");
+    const benchmarkDiv = document.getElementById("benchmark");
 
     speedSlider.oninput = () => {
       speedLabel.textContent = speedSlider.value;
@@ -92,6 +107,9 @@
       if (running) return;
       running = true;
       maxSpeed = false;
+      iterations = 0;
+      pi = 0;
+      i = 0;
       calculatePi();
     };
 
@@ -104,51 +122,75 @@
       if (running) return;
       running = true;
       maxSpeed = true;
+      iterations = 0;
+      pi = 0;
+      i = 0;
       calculatePi();
     };
 
     function calculatePi() {
-      iterations = 0;
-      pi = 0;
-      let i = 0;
+      let loopStart, loopEnd;
+      let prevIter = 0;
 
-      const safeLoop = () => {
+      const loop = () => {
         if (!running) return;
-        const speed = parseInt(speedSlider.value);
+
+        loopStart = performance.now();
+        let speed = parseInt(speedSlider.value);
+        let loopIters = maxSpeed ? 0 : speed;
         let count = 0;
-        const t0 = performance.now();
 
-        while (count < speed && performance.now() - t0 < 1000) {
-          pi += 4 * ((i % 2 === 0 ? 1 : -1) / (2 * i + 1));
-          i++;
-          iterations++;
-          count++;
-        }
-
-        piOutput.textContent = pi.toFixed(12);
-        iterOutput.textContent = iterations;
-
-        setTimeout(safeLoop, 50);
-      };
-
-      const maxLoop = () => {
-        if (!running) return;
-        const t0 = performance.now();
-        let count = 0;
-        while (performance.now() - t0 < 16) { // hammer hard each frame (~60fps)
-          for (let k = 0; k < 1000000; k++, i++) {
-            pi += 4 * ((i % 2 === 0 ? 1 : -1) / (2 * i + 1));
-            iterations++;
+        if (maxSpeed) {
+          const frameStart = performance.now();
+          while (performance.now() - frameStart < 16.66) {
+            for (let j = 0; j < 500000; j++) {
+              pi += 4 * ((i % 2 === 0 ? 1 : -1) / (2 * i + 1));
+              i++;
+              iterations++;
+            }
           }
-          count++;
+        } else {
+          while (count < loopIters) {
+            pi += 4 * ((i % 2 === 0 ? 1 : -1) / (2 * i + 1));
+            i++;
+            iterations++;
+            count++;
+          }
         }
 
-        piOutput.textContent = pi.toFixed(12);
-        iterOutput.textContent = iterations;
-        requestAnimationFrame(maxLoop);
+        loopEnd = performance.now();
+        const duration = loopEnd - loopStart;
+        const ips = iterations - prevIter;
+        prevIter = iterations;
+
+        piOutput.textContent = pi.toPrecision(17);
+        iterOutput.textContent = iterations.toLocaleString();
+
+        // Frame rate calc
+        const now = performance.now();
+        const frameTime = now - lastFrame;
+        totalFrameTime += frameTime;
+        frameCount++;
+        const avgFrameTime = totalFrameTime / frameCount;
+        const refreshRate = (1000 / avgFrameTime).toFixed(1);
+
+        benchmarkDiv.textContent = `
+Time: ${(new Date()).toLocaleTimeString()}
+Loop Time: ${duration.toFixed(2)} ms
+Last Frame: ${frameTime.toFixed(2)} ms
+Est. Refresh Rate: ${refreshRate} Hz
+Iterations this frame: ${ips.toLocaleString()}
+Total Iterations: ${iterations.toLocaleString()}
+π to 17 digits: ${pi.toPrecision(17)}
+Note: JavaScript uses 64-bit float (max ~15-17 digit precision)
+`;
+
+        lastFrame = now;
+
+        requestAnimationFrame(loop);
       };
 
-      maxSpeed ? maxLoop() : safeLoop();
+      requestAnimationFrame(loop);
     }
   </script>
 </body>
