@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Apple Web App Meta -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Pi Calculator">
+  <link rel="apple-touch-icon" href="icon.png"> <!-- Add your icon if needed -->
+
+  <title>Pi Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #fff;
+      text-align: center;
+      padding: 30px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    button, input[type="range"] {
+      margin: 10px;
+      padding: 12px 25px;
+      font-size: 1.1em;
+      border: none;
+      border-radius: 5px;
+    }
+
+    button {
+      background: #1976d2;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1565c0;
+    }
+
+    .output {
+      margin-top: 30px;
+      font-size: 1.6em;
+    }
+
+    .controls {
+      margin-top: 30px;
+    }
+
+    input[type="range"] {
+      width: 80%;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pi Calculator</h1>
+  <div class="controls">
+    <button id="startBtn">Start</button>
+    <button id="stopBtn">Stop</button>
+    <button id="maxBtn">Max Speed</button>
+
+    <label>
+      Speed (iterations/sec): <span id="speedLabel">10000</span>
+      <br>
+      <input type="range" id="speedSlider" min="1000" max="10000000" step="1000" value="10000">
+    </label>
+  </div>
+
+  <div class="output">
+    <p>π ≈ <span id="piOutput">0</span></p>
+    <p>Iterations: <span id="iterations">0</span></p>
+  </div>
+
+  <script>
+    let running = false;
+    let maxSpeed = false;
+    let iterations = 0;
+    let pi = 0;
+
+    const piOutput = document.getElementById('piOutput');
+    const iterOutput = document.getElementById('iterations');
+    const speedSlider = document.getElementById('speedSlider');
+    const speedLabel = document.getElementById('speedLabel');
+
+    speedSlider.oninput = () => {
+      speedLabel.textContent = speedSlider.value;
+    };
+
+    document.getElementById('startBtn').onclick = () => {
+      if (running) return;
+      running = true;
+      maxSpeed = false;
+      startCalculation();
+    };
+
+    document.getElementById('stopBtn').onclick = () => {
+      running = false;
+      maxSpeed = false;
+    };
+
+    document.getElementById('maxBtn').onclick = () => {
+      if (running) return;
+      running = true;
+      maxSpeed = true;
+      startCalculation();
+    };
+
+    function startCalculation() {
+      iterations = 0;
+      pi = 0;
+      let i = 0;
+
+      const step = () => {
+        if (!running) return;
+
+        if (maxSpeed) {
+          // Push device hard by chaining requestAnimationFrame
+          for (let k = 0; k < 500000; k++, i++) {
+            pi += 4 * ((i % 2 === 0 ? 1 : -1) / (2 * i + 1));
+            iterations++;
+          }
+          piOutput.textContent = pi.toFixed(12);
+          iterOutput.textContent = iterations;
+          requestAnimationFrame(step);
+        } else {
+          const speed = parseInt(speedSlider.value);
+          let count = 0;
+          const t0 = performance.now();
+
+          while (count < speed && performance.now() - t0 < 1000) {
+            pi += 4 * ((i % 2 === 0 ? 1 : -1) / (2 * i + 1));
+            i++;
+            count++;
+            iterations++;
+          }
+
+          piOutput.textContent = pi.toFixed(12);
+          iterOutput.textContent = iterations;
+
+          setTimeout(step, 100);
+        }
+      };
+
+      step();
+    }
+  </script>
+</body>
+</html>
